@@ -2,7 +2,23 @@ import sys
 import boto3
 import json
 import argparse
+import re
 from botocore.exceptions import ClientError
+
+
+def rename_parameter(parameter, source_path, target_path):
+    """
+    >>> rename_parameter({'Name':'/old-root/my-param'}, '/old-root', '/new-root')
+    {'Name': '/new-root/my-param'}
+    >>> rename_parameter({'Name':'/old-root/my-param'}, '/invalid-root', '/new-root')
+    {'Name': '/old-root/my-param'}
+    >>> rename_parameter({'Name':'/old-root/my-param'}, '/old-root', None)
+    {'Name': '/old-root/my-param'}
+    """
+    result = parameter.copy()
+    if target_path is not None:
+        result['Name'] = re.sub(r"^"+source_path, target_path, parameter['Name'])
+    return result
 
 
 class ParameterCopier(object):
@@ -13,6 +29,7 @@ class ParameterCopier(object):
         self.source_region = None
         self.source_ssm = None
         self.target_ssm = None
+        self.target_path = None
         self.dry_run = False
 
     def connect_to(self, profile, region):
@@ -38,46 +55,45 @@ class ParameterCopier(object):
             sys.stderr.write('ERROR: cannot copy into the same AWS account.\n')
             sys.exit(1)
 
-    def load_source_parameters(self, args, recursive, one_level):
+    def load_source_parameters(self, arg, recursive, one_level):
         result = {}
-        paginator = self.source_ssm.get_paginator('describe_parameters')    
+        paginator = self.source_ssm.get_paginator('describe_parameters')
+        kwargs = {}
+        if recursive or one_level:
+            option = 'Recursive' if recursive else 'OneLevel'
+            kwargs['ParameterFilters'] = [{'Key': 'Path', 'Option': option, 'Values': [arg]}]
+        else:
+            kwargs['ParameterFilters'] = [{'Key': 'Name', 'Option': 'Equals', 'Values': [arg]}]
 
-        for arg in args:
-            kwargs = {}
-            if recursive or one_level:
-                option = 'Recursive' if recursive else 'OneLevel'
-                kwargs['ParameterFilters'] = [{'Key': 'Path', 'Option': option, 'Values': [arg]}]
-            else:
-                kwargs['ParameterFilters'] = [{'Key': 'Name', 'Option': 'Equals', 'Values': [arg]}]
+        for page in paginator.paginate(**kwargs):
+            for parameter in page['Parameters']:
+                result[parameter['Name']] = parameter
 
-            arg_parameters = {}
-            for page in paginator.paginate(**kwargs):
-                for parameter in page['Parameters']:
-                    arg_parameters[parameter['Name']] = parameter
-
-            if len(arg_parameters) == 0:
-                sys.stderr.write('ERROR: {} not found.\n'.format(arg))
-                sys.exit(1)
-            result.update(arg_parameters)
+        if len(result) == 0:
+            sys.stderr.write('ERROR: {} not found.\n'.format(arg))
+            sys.exit(1)
         return result
 
-    def copy(self, args, recursive, one_level, overwrite):
-        parameters = self.load_source_parameters(args, recursive, one_level)
-        for name in parameters:
-            value = self.source_ssm.get_parameter(Name=name, WithDecryption=True)
-            parameter = parameters[name]
-            parameter['Value'] = value['Parameter']['Value']
 
-            if 'LastModifiedDate' in parameter:
-                del parameter['LastModifiedDate']
-            if 'LastModifiedUser' in parameter:
-                del parameter['LastModifiedUser']
-            if 'Version' in parameter:
-                del parameter['Version']
-            parameter['Overwrite'] = overwrite
-            sys.stderr.write('INFO: copying {}\n'.format(name))
-            if not self.dry_run:
-                value = self.target_ssm.put_parameter(**parameter)
+    def copy(self, args, recursive, one_level, overwrite):
+        for arg in args:
+            parameters = self.load_source_parameters(arg, recursive, one_level)
+            for name in parameters:
+                value = self.source_ssm.get_parameter(Name=name, WithDecryption=True)
+                parameter = parameters[name]
+                parameter['Value'] = value['Parameter']['Value']
+
+                if 'LastModifiedDate' in parameter:
+                    del parameter['LastModifiedDate']
+                if 'LastModifiedUser' in parameter:
+                    del parameter['LastModifiedUser']
+                if 'Version' in parameter:
+                    del parameter['Version']
+                parameter['Overwrite'] = overwrite
+                parameter = rename_parameter(parameter, arg, self.target_path)
+                sys.stderr.write('INFO: copying {} to {}\n'.format(name, parameter['Name']))
+                if not self.dry_run:
+                    self.target_ssm.put_parameter(**parameter)
 
     def main(self):
         parser = argparse.ArgumentParser(description='copy parameter store ')
@@ -89,6 +105,7 @@ class ParameterCopier(object):
         parser.add_argument('--source-profile', dest='source_profile', help='to obtain the parameters from', metavar='NAME')
         parser.add_argument('--region', dest='target_region', help='to copy the parameters to ', metavar='AWS::Region')
         parser.add_argument('--profile', dest='target_profile', help='to copy the parameters to', metavar='NAME')
+        parser.add_argument('--target-path', dest='target_path', help='to copy the parameters to', metavar='NAME')
         parser.add_argument('parameters', metavar='PARAMETER', type=str, nargs='+', help='source path')
         options = parser.parse_args()
 
@@ -96,6 +113,7 @@ class ParameterCopier(object):
             self.connect_to_source(options.source_profile, options.source_region) 
             self.connect_to_target(options.target_profile, options.target_region) 
             self.precondition_check()
+            self.target_path = options.target_path
             self.dry_run = options.dry_run
             self.copy(options.parameters, options.recursive, options.one_level, options.overwrite)
         except ClientError as e:
