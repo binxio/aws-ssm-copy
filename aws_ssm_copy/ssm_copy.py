@@ -51,9 +51,6 @@ class ParameterCopier(object):
     def precondition_check(self):
         source_id = self.source_sts.get_caller_identity()
         target_id = self.target_sts.get_caller_identity()
-        if source_id['Account'] == target_id['Account']:
-            sys.stderr.write('ERROR: cannot copy into the same AWS account.\n')
-            sys.exit(1)
 
     def load_source_parameters(self, arg, recursive, one_level):
         result = {}
