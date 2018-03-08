@@ -48,10 +48,6 @@ class ParameterCopier(object):
         self.target_ssm = self.connect_to(profile, region).client('ssm')
         self.target_sts = self.connect_to(profile, region).client('sts')
 
-    def precondition_check(self):
-        source_id = self.source_sts.get_caller_identity()
-        target_id = self.target_sts.get_caller_identity()
-
     def load_source_parameters(self, arg, recursive, one_level):
         result = {}
         paginator = self.source_ssm.get_paginator('describe_parameters')
@@ -109,7 +105,6 @@ class ParameterCopier(object):
         try:
             self.connect_to_source(options.source_profile, options.source_region) 
             self.connect_to_target(options.target_profile, options.target_region) 
-            self.precondition_check()
             self.target_path = options.target_path
             self.dry_run = options.dry_run
             self.copy(options.parameters, options.recursive, options.one_level, options.overwrite)
