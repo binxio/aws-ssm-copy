@@ -88,6 +88,10 @@ class ParameterCopier(object):
                     del parameter["LastModifiedUser"]
                 if "Version" in parameter:
                     del parameter["Version"]
+                if "Policies" in parameter:
+                    if not parameter["Policies"]:
+                        # an empty policies list causes an exception
+                        del parameter["Policies"]
                 parameter["Overwrite"] = overwrite
                 parameter = rename_parameter(parameter, arg, self.target_path)
                 sys.stderr.write(
