@@ -94,10 +94,14 @@ class ParameterCopier(object):
                         del parameter["Policies"]
                 parameter["Overwrite"] = overwrite
                 parameter = rename_parameter(parameter, arg, self.target_path)
-                sys.stderr.write(
-                    "INFO: copying {} to {}\n".format(name, parameter["Name"])
-                )
-                if not self.dry_run:
+                if self.dry_run:
+                    sys.stdout.write(
+                        "DRY-RUN: copying {} to {}\n".format(name, parameter["Name"])
+                    )                    
+                else:
+                    sys.stdout.write(
+                        "INFO: copying {} to {}\n".format(name, parameter["Name"])
+                    )                    
                     self.target_ssm.put_parameter(**parameter)
 
     def main(self):
