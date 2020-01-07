@@ -1,6 +1,12 @@
 # aws-ssm-copy-parameters
 Copy parameters from a AWS parameter store to another 
 
+## Installation
+From project root run:
+```
+sudo python setup.py install
+```
+
 ## Options
 ```
 usage: aws-ssm-copy [options] PARAMETER [PARAMETER ...]
@@ -29,7 +35,7 @@ optional arguments::
 
 
 ## Example
-Copy all parameters under /dev
+Copy all parameters under /dev/my-app
 ```
-aws-ssm-copy --profile binx-io --recursive /dev 
+aws-ssm-copy --profile dev --recursive /dev/my-app
 ```

@@ -92,6 +92,8 @@ class ParameterCopier(object):
                     if not parameter["Policies"]:
                         # an empty policies list causes an exception
                         del parameter["Policies"]
+                if "KeyId" in parameter:
+                    del parameter["KeyId"]
                 parameter["Overwrite"] = overwrite
                 parameter = rename_parameter(parameter, arg, self.target_path)
                 sys.stderr.write(
