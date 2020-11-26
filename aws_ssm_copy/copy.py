@@ -74,7 +74,7 @@ class ParameterCopier(object):
             sys.exit(1)
         return result
 
-    def copy(self, args, recursive, one_level, overwrite, key_id=None):
+    def copy(self, args, recursive, one_level, overwrite, key_id=None, clear_kms_key=False):
         for arg in args:
             parameters = self.load_source_parameters(arg, recursive, one_level)
             for name in parameters:
@@ -84,6 +84,8 @@ class ParameterCopier(object):
 
                 if "KeyId" in parameter and key_id is not None:
                     parameter["KeyId"] = key_id
+                if "KeyId" in parameter and clear_kms_key:
+                    del parameter["KeyId"]
                 if "LastModifiedDate" in parameter:
                     del parameter["LastModifiedDate"]
                 if "LastModifiedUser" in parameter:
@@ -166,11 +168,19 @@ class ParameterCopier(object):
             help="to copy the parameters to",
             metavar="NAME",
         )
-        parser.add_argument(
+        key_group = parser.add_mutually_exclusive_group()
+        key_group.add_argument(
             "--key-id",
             dest="key_id",
             help="a key id to use for encrypted values in the destination",
             metavar="ID"
+        )
+        key_group.add_argument(
+            "--clear-kms-key-id",
+            "-C",
+            dest="clear_kms_key",
+            action="store_true",
+            help="clear the kmskey id associated with the parameter",
         )
         parser.add_argument(
             "parameters", metavar="PARAMETER", type=str, nargs="+", help="source path"
@@ -188,6 +198,7 @@ class ParameterCopier(object):
                 options.one_level,
                 options.overwrite,
                 options.key_id,
+                options.clear_kms_key,
             )
         except ClientError as e:
             sys.stderr.write("ERROR: {}\n".format(e))
