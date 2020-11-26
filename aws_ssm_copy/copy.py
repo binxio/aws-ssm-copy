@@ -74,7 +74,7 @@ class ParameterCopier(object):
             sys.exit(1)
         return result
 
-    def copy(self, args, recursive, one_level, overwrite):
+    def copy(self, args, recursive, one_level, overwrite, key_id=None):
         for arg in args:
             parameters = self.load_source_parameters(arg, recursive, one_level)
             for name in parameters:
@@ -82,6 +82,8 @@ class ParameterCopier(object):
                 parameter = parameters[name]
                 parameter["Value"] = value["Parameter"]["Value"]
 
+                if "KeyId" in parameter and key_id is not None:
+                    parameter["KeyId"] = key_id
                 if "LastModifiedDate" in parameter:
                     del parameter["LastModifiedDate"]
                 if "LastModifiedUser" in parameter:
@@ -97,11 +99,11 @@ class ParameterCopier(object):
                 if self.dry_run:
                     sys.stdout.write(
                         "DRY-RUN: copying {} to {}\n".format(name, parameter["Name"])
-                    )                    
+                    )
                 else:
                     sys.stdout.write(
                         "INFO: copying {} to {}\n".format(name, parameter["Name"])
-                    )                    
+                    )
                     self.target_ssm.put_parameter(**parameter)
 
     def main(self):
@@ -165,6 +167,12 @@ class ParameterCopier(object):
             metavar="NAME",
         )
         parser.add_argument(
+            "--key-id",
+            dest="key_id",
+            help="a key id to use for encrypted values in the destination",
+            metavar="ID"
+        )
+        parser.add_argument(
             "parameters", metavar="PARAMETER", type=str, nargs="+", help="source path"
         )
         options = parser.parse_args()
@@ -179,6 +187,7 @@ class ParameterCopier(object):
                 options.recursive,
                 options.one_level,
                 options.overwrite,
+                options.key_id,
             )
         except ClientError as e:
             sys.stderr.write("ERROR: {}\n".format(e))
