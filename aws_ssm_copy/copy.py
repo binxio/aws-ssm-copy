@@ -176,11 +176,11 @@ class ParameterCopier(object):
             metavar="ID"
         )
         key_group.add_argument(
-            "--clear-kms-key-id",
+            "--clear-key-id",
             "-C",
-            dest="clear_kms_key",
+            dest="clear_key_id",
             action="store_true",
-            help="clear the kmskey id associated with the parameter",
+            help="clear the KMS key id associated with the parameter",
         )
         parser.add_argument(
             "parameters", metavar="PARAMETER", type=str, nargs="+", help="source path"
@@ -198,7 +198,7 @@ class ParameterCopier(object):
                 options.one_level,
                 options.overwrite,
                 options.key_id,
-                options.clear_kms_key,
+                options.clear_key_id,
             )
         except ClientError as e:
             sys.stderr.write("ERROR: {}\n".format(e))
