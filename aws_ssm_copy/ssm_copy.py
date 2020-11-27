@@ -9,19 +9,19 @@ from botocore.exceptions import ClientError
 def rename_parameter(parameter, source_path, target_path):
     """
     >>> rename_parameter({'Name':'/old-root/my-param'}, 'old-root', 'new-root')
-    {'Name': 'new-root/my-param'}
+    {'Name': '/new-root/my-param'}
     >>> rename_parameter({'Name':'/old-root/my-param'}, '/old-root', '/new-root')
-    {'Name': 'new-root/my-param'}
+    {'Name': '/new-root/my-param'}
     >>> rename_parameter({'Name':'old-root/my-param'}, '/old-root', '/new-root')
-    {'Name': 'new-root/my-param'}
+    {'Name': '/new-root/my-param'}
     >>> rename_parameter({'Name':'/old-root/my-param'}, '/invalid-root', '/new-root')
     {'Name': '/old-root/my-param'}
     >>> rename_parameter({'Name':'/old-root/my-param'}, '/old-root', None)
     {'Name': '/old-root/my-param'}
     >>> rename_parameter({'Name':'my-param'}, "/", "/new-root")
-    {'Name': 'new-root/my-param'}
+    {'Name': '/new-root/my-param'}
     >>> rename_parameter({'Name':'old-root/my-param'}, '/old-root', 'new-root')
-    {'Name': 'new-root/my-param'}
+    {'Name': '/new-root/my-param'}
     >>> rename_parameter({'Name':'/old-root-not/my-param'}, 'old-root', 'new-root')
     {'Name': '/old-root-not/my-param'}
 
@@ -38,7 +38,7 @@ def rename_parameter(parameter, source_path, target_path):
     else:
         regex = r"^/?" + sp + "/"
 
-    result["Name"] = re.sub(regex, tp + "/", parameter["Name"])
+    result["Name"] = re.sub(regex, f"/{tp}/", parameter["Name"])
 
     return result
 
@@ -96,7 +96,7 @@ class ParameterCopier(object):
             sys.exit(1)
         return result
 
-    def copy(self, args, recursive, one_level, overwrite, key_id=None, clear_kms_key=False):
+    def copy(self, args, recursive, one_level, overwrite, key_id=None, clear_kms_key=False, keep_going=False):
         for arg in args:
             parameters = self.load_source_parameters(arg, recursive, one_level)
             for name in parameters:
@@ -120,15 +120,29 @@ class ParameterCopier(object):
                         del parameter["Policies"]
                 parameter["Overwrite"] = overwrite
                 parameter = rename_parameter(parameter, arg, self.target_path)
+                new_name = parameter["Name"]
                 if self.dry_run:
                     sys.stdout.write(
-                        "DRY-RUN: copying {} to {}\n".format(name, parameter["Name"])
+                        f"DRY-RUN: copying {name} to {new_name}\n"
                     )
                 else:
-                    sys.stdout.write(
-                        "INFO: copying {} to {}\n".format(name, parameter["Name"])
-                    )
-                    self.target_ssm.put_parameter(**parameter)
+
+                    try:
+                        self.target_ssm.put_parameter(**parameter)
+                        sys.stdout.write(
+                            f"INFO: copied {name} to {new_name}\n"
+                        )
+                    except self.target_ssm.exceptions.ParameterAlreadyExists as e:
+                        if not keep_going:
+                            sys.stderr.write(f"ERROR: failed to copy {name} to {new_name} as it already exists: specify --overwrite or --keep-going\n")
+                            exit(1)
+                        else:
+                            sys.stderr.write(f"WARN: skipping copy {name} as {new_name} already exists\n")
+                    except ClientError as e:
+                        msg = e.response["Error"]["Message"]
+                        sys.stderr.write(f"ERROR: failed to copy {name} to {new_name}, {msg}\n")
+                        if not keep_going:
+                            exit(1)
 
     def main(self):
         parser = argparse.ArgumentParser(description="copy parameter store ")
@@ -146,13 +160,22 @@ class ParameterCopier(object):
             action="store_true",
             help="recursive copy",
         )
-        parser.add_argument(
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument(
             "--overwrite",
             "-f",
             dest="overwrite",
             action="store_true",
             help="existing values",
         )
+        group.add_argument(
+            "--keep-going",
+            "-k",
+            dest="keep_going",
+            action="store_true",
+            help="as much as possible after an error",
+        )
+
         parser.add_argument(
             "--dry-run",
             "-N",
@@ -221,6 +244,7 @@ class ParameterCopier(object):
                 options.overwrite,
                 options.key_id,
                 options.clear_key_id,
+                options.keep_going,
             )
         except ClientError as e:
             sys.stderr.write("ERROR: {}\n".format(e))
