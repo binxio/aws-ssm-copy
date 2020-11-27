@@ -1,3 +1,3 @@
-from aws_ssm_copy.copy import main
+from aws_ssm_copy.ssm_copy import main
 
 main()
