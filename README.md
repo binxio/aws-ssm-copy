@@ -17,6 +17,7 @@ optional arguments::
   --one-level, -1       one-level copy
   --recursive, -r       recursive copy
   --overwrite, -f       existing values
+  --keep-going, -k      as much as possible, even after an error
   --dry-run, -N         only show what is to be copied
   --source-region AWS::Region
                         to get the parameters from
