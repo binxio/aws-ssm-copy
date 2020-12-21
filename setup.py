@@ -10,7 +10,7 @@ from setuptools import setup
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.rst'), 'r') as f:
+with open(path.join(here, 'README.md'), 'r') as f:
     long_description = f.read()
 
 version = "0.3.1"
@@ -24,6 +24,7 @@ setup(
     version=version,
     description='Copy AWS Parameter Store parameters',
     long_description=long_description,
+    long_description_content_type="text/markdown",
     include_package_data=True,
     zip_safe=False,
     platforms='any',
