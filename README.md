@@ -36,3 +36,6 @@ Copy all parameters under /dev
 ```
 aws-ssm-copy --profile binx-io --recursive /dev 
 ```
+
+
+Read more at https://binx.io/blog/2020/12/21/how-to-copy-aws-ssm-parameters-from-one-account-to-another/
