@@ -28,7 +28,6 @@ optional arguments::
   --target-path NAME    to copy the parameters to
   --key-id ID           to use for parameter values in the destination
   --clear-key-id, -C    clear the kms key id associated with the parameter
-  --keep-going, -k      as much as possible after an error  
 ```
 
 
@@ -38,5 +37,4 @@ Copy all parameters under /dev
 aws-ssm-copy --profile binx-io --recursive /dev 
 ```
 
-
-Read more at https://binx.io/blog/2020/12/21/how-to-copy-aws-ssm-parameters-from-one-account-to-another/
+Read more [about copying aws ssm parameters from one account to another](https://binx.io/blog/2020/12/21/how-to-copy-aws-ssm-parameters-from-one-account-to-another/).
