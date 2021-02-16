@@ -6,28 +6,26 @@ Copy parameters from a AWS parameter store to another
 usage: aws-ssm-copy [options] PARAMETER [PARAMETER ...]
 ```
 
-positional arguments::
+positional arguments:
 ```
-	PARAMETER             source path
+PARAMETER             source path
 ```
 
-optional arguments::
+optional arguments:
 ```
-  -h, --help            show this help message and exit
-  --one-level, -1       one-level copy
-  --recursive, -r       recursive copy
-  --overwrite, -f       existing values
-  --keep-going, -k      as much as possible, even after an error
-  --dry-run, -N         only show what is to be copied
-  --source-region AWS::Region
-                        to get the parameters from
-  --source-profile NAME
-                        to obtain the parameters from
-  --region AWS::Region  to copy the parameters to
-  --profile NAME        to copy the parameters to
-  --target-path NAME    to copy the parameters to
-  --key-id ID           to use for parameter values in the destination
-  --clear-key-id, -C    clear the kms key id associated with the parameter
+-h, --help             show this help message and exit
+--one-level, -1        one-level copy
+--recursive, -r        recursive copy
+--overwrite, -f        existing values
+--keep-going, -k       as much as possible, even after an error
+--dry-run, -N          only show what is to be copied
+--source-region REGION to get the parameters from
+--source-profile NAME  to obtain the parameters from
+--region REGION        to copy the parameters to
+--profile NAME         to copy the parameters to
+--target-path NAME     to copy the parameters to
+--key-id ID            to use for parameter values in the destination
+--clear-key-id, -C     clear the kms key id associated with the parameter
 ```
 
 

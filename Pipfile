@@ -6,6 +6,7 @@ verify_ssl = true
 [dev-packages]
 m2r = "*"
 twine = "*"
+readme-renderer = "*"
 
 [packages]
 
