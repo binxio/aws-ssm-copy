@@ -24,6 +24,12 @@ def rename_parameter(parameter, source_path, target_path):
     {'Name': '/new-root/my-param'}
     >>> rename_parameter({'Name':'/old-root-not/my-param'}, 'old-root', 'new-root')
     {'Name': '/old-root-not/my-param'}
+    >>> rename_parameter({'Name':'/staging/mysql/MYSQL_OTHERS_PASSWORD'}, '/staging/mysql/MYSQL_OTHERS_PASSWORD', '/pepe/mysql')
+    {'Name': '/pepe/mysql/MYSQL_OTHERS_PASSWORD'}
+    >>> rename_parameter({'Name':'MYSQL_OTHERS_PASSWORD'}, 'MYSQL_OTHERS_PASSWORD', '/pepe/mysql')
+    {'Name': '/pepe/mysql/MYSQL_OTHERS_PASSWORD'}
+    >>> rename_parameter({'Name':'MYSQL_OTHERS_PASSWORD'}, 'MYSQL_OTHERS_PASSWORD', None)
+    {'Name': 'MYSQL_OTHERS_PASSWORD'}
 
     """
     result = parameter.copy()
@@ -35,6 +41,12 @@ def rename_parameter(parameter, source_path, target_path):
 
     if sp == "":
         regex = r"^/?"
+    elif parameter["Name"].strip("/") == sp:
+        dir = "/".join(sp.split("/")[0:-1])
+        if dir:
+            regex = r"^/?" + dir + "/"
+        else:
+            regex = r"^/?"
     else:
         regex = r"^/?" + sp + "/"
 
@@ -96,7 +108,16 @@ class ParameterCopier(object):
             sys.exit(1)
         return result
 
-    def copy(self, args, recursive, one_level, overwrite, key_id=None, clear_kms_key=False, keep_going=False):
+    def copy(
+        self,
+        args,
+        recursive,
+        one_level,
+        overwrite,
+        key_id=None,
+        clear_kms_key=False,
+        keep_going=False,
+    ):
         for arg in args:
             parameters = self.load_source_parameters(arg, recursive, one_level)
             for name in parameters:
@@ -122,25 +143,27 @@ class ParameterCopier(object):
                 parameter = rename_parameter(parameter, arg, self.target_path)
                 new_name = parameter["Name"]
                 if self.dry_run:
-                    sys.stdout.write(
-                        f"DRY-RUN: copying {name} to {new_name}\n"
-                    )
+                    sys.stdout.write(f"DRY-RUN: copying {name} to {new_name}\n")
                 else:
 
                     try:
                         self.target_ssm.put_parameter(**parameter)
-                        sys.stdout.write(
-                            f"INFO: copied {name} to {new_name}\n"
-                        )
+                        sys.stdout.write(f"INFO: copied {name} to {new_name}\n")
                     except self.target_ssm.exceptions.ParameterAlreadyExists as e:
                         if not keep_going:
-                            sys.stderr.write(f"ERROR: failed to copy {name} to {new_name} as it already exists: specify --overwrite or --keep-going\n")
+                            sys.stderr.write(
+                                f"ERROR: failed to copy {name} to {new_name} as it already exists: specify --overwrite or --keep-going\n"
+                            )
                             exit(1)
                         else:
-                            sys.stderr.write(f"WARN: skipping copy {name} as {new_name} already exists\n")
+                            sys.stderr.write(
+                                f"WARN: skipping copy {name} as {new_name} already exists\n"
+                            )
                     except ClientError as e:
                         msg = e.response["Error"]["Message"]
-                        sys.stderr.write(f"ERROR: failed to copy {name} to {new_name}, {msg}\n")
+                        sys.stderr.write(
+                            f"ERROR: failed to copy {name} to {new_name}, {msg}\n"
+                        )
                         if not keep_going:
                             exit(1)
 
@@ -218,7 +241,7 @@ class ParameterCopier(object):
             "--key-id",
             dest="key_id",
             help="to use for parameter values in the destination",
-            metavar="ID"
+            metavar="ID",
         )
         key_group.add_argument(
             "--clear-key-id",
