@@ -29,10 +29,15 @@ optional arguments:
 ```
 
 
-## Example
-Copy all parameters under /dev
+## Examples
+Copy all parameters under /dev to a new profile:
 ```
 aws-ssm-copy --profile binx-io --recursive /dev 
+```
+
+Copy all parameters under /dev to /production, with a dry run first:
+```
+aws-ssm-copy -r --dry-run --target-path /production /dev
 ```
 
 Read more [about copying aws ssm parameters from one account to another](https://binx.io/blog/2020/12/21/how-to-copy-aws-ssm-parameters-from-one-account-to-another/).
