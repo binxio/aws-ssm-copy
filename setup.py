@@ -13,7 +13,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), 'r') as f:
     long_description = f.read()
 
-version = "0.3.4"
+version = "0.4.0"
 
 setup(
     name='aws-ssm-copy',
