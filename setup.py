@@ -6,7 +6,7 @@
 
 
 import re
-from setuptools import setup
+from setuptools import setup, find_packages
 from os import path
 
 here = path.abspath(path.dirname(__file__))
@@ -17,7 +17,8 @@ version = "0.3.4"
 
 setup(
     name='aws-ssm-copy',
-    packages=['aws_ssm_copy'],
+    package_dir={'': 'src'},
+    packages=find_packages(where='src'),
     entry_points={
         'console_scripts': ['aws-ssm-copy = aws_ssm_copy:main']
     },

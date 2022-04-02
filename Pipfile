@@ -4,11 +4,13 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-m2r = "*"
 twine = "*"
-readme-renderer = "*"
+autopep8 = "*"
+pylint = "*"
+git-release-tag = "*"
 
 [packages]
+aws-ssm-copy = {editable = true, path = "."}
 
 [requires]
-python_version = "3.7"
+python_version = "3.9"

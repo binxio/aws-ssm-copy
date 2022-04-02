@@ -62,9 +62,7 @@ class ParameterCopier(object):
         self.source_profile = None
         self.source_region = None
         self.source_ssm = None
-        self.source_sts = None
         self.target_ssm = None
-        self.target_sts = None
         self.target_path = None
         self.dry_run = False
 
@@ -79,11 +77,9 @@ class ParameterCopier(object):
 
     def connect_to_source(self, profile, region):
         self.source_ssm = self.connect_to(profile, region).client("ssm")
-        self.source_sts = self.connect_to(profile, region).client("sts")
 
     def connect_to_target(self, profile, region):
         self.target_ssm = self.connect_to(profile, region).client("ssm")
-        self.target_sts = self.connect_to(profile, region).client("sts")
 
     def load_source_parameters(self, arg, recursive, one_level):
         result = {}
