@@ -1,0 +1,28 @@
+---
+name: release
+'on':
+  push:
+    tags:
+      - '*'
+jobs:
+  build:
+    name: snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.9
+      - name: checkout
+        run: git fetch --prune --unshallow
+      - name: build
+        run: |
+          python setup.py check
+          python setup.py build
+          python setup.py sdist
+      - name: distribute application
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{secrets.twine_password }}
+          packages_dir: dist/
