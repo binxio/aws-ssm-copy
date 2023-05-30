@@ -29,7 +29,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     platforms='any',
-    install_requires=['boto3' ],
+    install_requires=['boto3'],
     author='Mark van Holsteijn',
     author_email='markvanholsteijn@binx.io',
     url='https://github.com/binxio/aws-ssm-copy',

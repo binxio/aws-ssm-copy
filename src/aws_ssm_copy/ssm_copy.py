@@ -104,6 +104,44 @@ class ParameterCopier(object):
             sys.exit(1)
         return result
 
+    def copy_tags(self,
+                  name: str,
+                  new_name: str
+                  ):
+        """
+        copy the tags of the parameter `name` to `new_name`. Existing tags on `new_name` will be
+        removed.
+        """
+        source_tag_list = self.source_ssm.list_tags_for_resource(
+            ResourceType='Parameter',
+            ResourceId=name
+        )['TagList']
+        source_tags = {tag['Key']: tag['Value'] for tag in source_tag_list}
+
+        existing_tags_list = self.target_ssm.list_tags_for_resource(
+            ResourceType='Parameter',
+            ResourceId=new_name
+        )['TagList']
+        target_tags = {tag['Key']: tag['Value'] for tag in existing_tags_list}
+
+        to_remove = list(filter(lambda key: key not in source_tags, target_tags.keys()))
+        to_add = list(filter(lambda key: key not in target_tags or source_tags[key] != target_tags[key], source_tags.keys()))
+        if to_remove:
+            sys.stdout.write(f"{'DRY-RUN' if self.dry_run else 'INFO'}: remove tags {','.join(to_remove)} from {new_name}\n")
+
+            self.target_ssm.remove_tags_from_resource(
+                ResourceType='Parameter',
+                ResourceId=new_name,
+                TagKeys=to_remove
+            )
+        if to_add:
+            sys.stdout.write(f"{'DRY-RUN' if self.dry_run else 'INFO'}: adding tags {','.join(to_add)} from {new_name}\n")
+            self.target_ssm.add_tags_to_resource(
+                ResourceType='Parameter',
+                ResourceId=new_name,
+                Tags=[{'Key': key, 'Value': source_tags[key]} for key in to_add]
+            )
+
     def copy(
         self,
         args,
@@ -113,17 +151,12 @@ class ParameterCopier(object):
         key_id=None,
         clear_kms_key=False,
         keep_going=False,
+        with_tags=False,
     ):
         for arg in args:
             parameters = self.load_source_parameters(arg, recursive, one_level)
             for name in parameters:
                 value = self.source_ssm.get_parameter(Name=name, WithDecryption=True)
-
-                # Get the tags from the old parameter
-                ssm_param_tags = self.source_ssm.list_tags_for_resource(
-                    ResourceType='Parameter',
-                    ResourceId=name
-                )['TagList']
 
                 parameter = parameters[name]
                 parameter["Value"] = value["Parameter"]["Value"]
@@ -146,32 +179,14 @@ class ParameterCopier(object):
                 parameter = rename_parameter(parameter, arg, self.target_path)
                 new_name = parameter["Name"]
                 if self.dry_run:
-                    sys.stdout.write(f"DRY-RUN: copying {name} to {new_name} with tags {ssm_param_tags}\n")
+                    sys.stdout.write(f"DRY-RUN: copying {name} to {new_name}\n")
+                    self.copy_tags(name, new_name)
                 else:
-
                     try:
                         self.target_ssm.put_parameter(**parameter)
-
-                        target_ssm_param_existing_tags = self.target_ssm.list_tags_for_resource(
-                            ResourceType='Parameter',
-                            ResourceId=new_name
-                        )['TagList']
-
-                        # Delete all tags first
-                        self.target_ssm.remove_tags_from_resource(
-                            ResourceType='Parameter',
-                            ResourceId=new_name,
-                            TagKeys=[tag.get('Key') for tag in target_ssm_param_existing_tags]
-                        )
-
-                        # Add the tags from the source parameter
-                        self.target_ssm.add_tags_to_resource(
-                            ResourceType='Parameter',
-                            ResourceId=new_name,
-                            Tags=ssm_param_tags
-                        )
-
-                        sys.stdout.write(f"INFO: copied {name} to {new_name} with tags {ssm_param_tags}\n")
+                        sys.stdout.write(f"INFO: copied {name} to {new_name}\n")
+                        if with_tags:
+                            self.copy_tags(name, new_name)
                     except self.target_ssm.exceptions.ParameterAlreadyExists as e:
                         if not keep_going:
                             sys.stderr.write(
@@ -273,6 +288,14 @@ class ParameterCopier(object):
             action="store_true",
             help="clear the KMS key id associated with the parameter",
         )
+        key_group.add_argument(
+            "--with-tags",
+            "-W",
+            dest="with_tags",
+            action="store_true",
+            help="copy the tags of the parameters too",
+        )
+
         parser.add_argument(
             "parameters", metavar="PARAMETER", type=str, nargs="+", help="source path"
         )
@@ -291,6 +314,7 @@ class ParameterCopier(object):
                 options.key_id,
                 options.clear_key_id,
                 options.keep_going,
+                options.with_tags
             )
         except ClientError as e:
             sys.stderr.write("ERROR: {}\n".format(e))

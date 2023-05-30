@@ -26,6 +26,7 @@ optional arguments:
 --target-path NAME     to copy the parameters to
 --key-id ID            to use for parameter values in the destination
 --clear-key-id, -C     clear the kms key id associated with the parameter
+--with-tags, -W        copy the tags too, existing tags will be removed
 ```
 
 
