@@ -127,20 +127,27 @@ class ParameterCopier(object):
         to_remove = list(filter(lambda key: key not in source_tags, target_tags.keys()))
         to_add = list(filter(lambda key: key not in target_tags or source_tags[key] != target_tags[key], source_tags.keys()))
         if to_remove:
-            sys.stdout.write(f"{'DRY-RUN' if self.dry_run else 'INFO'}: remove tags {','.join(to_remove)} from {new_name}\n")
 
-            self.target_ssm.remove_tags_from_resource(
-                ResourceType='Parameter',
-                ResourceId=new_name,
-                TagKeys=to_remove
-            )
+            if self.dry_run:
+                sys.stdout.write(f"DRY-RUN: remove tags {','.join(to_remove)} from {new_name}\n")
+            else:
+                self.target_ssm.remove_tags_from_resource(
+                    ResourceType='Parameter',
+                    ResourceId=new_name,
+                    TagKeys=to_remove
+                )
+                sys.stdout.write(f"INFO: removed tags {','.join(to_remove)} from {new_name}\n")
+
         if to_add:
-            sys.stdout.write(f"{'DRY-RUN' if self.dry_run else 'INFO'}: adding tags {','.join(to_add)} from {new_name}\n")
-            self.target_ssm.add_tags_to_resource(
-                ResourceType='Parameter',
-                ResourceId=new_name,
-                Tags=[{'Key': key, 'Value': source_tags[key]} for key in to_add]
-            )
+            if self.dry_run:
+                sys.stdout.write(f"DRY-RUN: adding tags {','.join(to_add)} from {new_name}\n")
+            else:
+                self.target_ssm.add_tags_to_resource(
+                    ResourceType='Parameter',
+                    ResourceId=new_name,
+                    Tags=[{'Key': key, 'Value': source_tags[key]} for key in to_add]
+                )
+                sys.stdout.write(f"INFO: added tags {','.join(to_add)} to {new_name}\n")
 
     def copy(
         self,
