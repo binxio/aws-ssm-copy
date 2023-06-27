@@ -118,11 +118,14 @@ class ParameterCopier(object):
         )['TagList']
         source_tags = {tag['Key']: tag['Value'] for tag in source_tag_list}
 
-        existing_tags_list = self.target_ssm.list_tags_for_resource(
-            ResourceType='Parameter',
-            ResourceId=new_name
-        )['TagList']
-        target_tags = {tag['Key']: tag['Value'] for tag in existing_tags_list}
+        try:
+            existing_tags_list = self.target_ssm.list_tags_for_resource(
+                ResourceType='Parameter',
+                ResourceId=new_name
+            )['TagList']
+            target_tags = {tag['Key']: tag['Value'] for tag in existing_tags_list}
+        except self.target_ssm.exceptions.InvalidResourceId:
+            target_tags = {}
 
         to_remove = list(filter(lambda key: key not in source_tags, target_tags.keys()))
         to_add = list(filter(lambda key: key not in target_tags or source_tags[key] != target_tags[key], source_tags.keys()))
