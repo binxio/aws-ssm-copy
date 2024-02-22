@@ -11,6 +11,7 @@ git-release-tag = "*"
 
 [packages]
 aws-ssm-copy = {editable = true, path = "."}
+boto3 = "*"
 
 [requires]
 python_version = "3.9"

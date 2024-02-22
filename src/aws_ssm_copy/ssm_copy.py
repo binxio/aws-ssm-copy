@@ -175,12 +175,9 @@ class ParameterCopier(object):
                     parameter["KeyId"] = key_id
                 if "KeyId" in parameter and clear_kms_key:
                     del parameter["KeyId"]
-                if "LastModifiedDate" in parameter:
-                    del parameter["LastModifiedDate"]
-                if "LastModifiedUser" in parameter:
-                    del parameter["LastModifiedUser"]
-                if "Version" in parameter:
-                    del parameter["Version"]
+                for property_name in ["LastModifiedDate", "LastModifiedUser", "Version", "ARN"]:
+                    parameter.pop(property_name, None)
+
                 if "Policies" in parameter:
                     if not parameter["Policies"]:
                         # an empty policies list causes an exception
